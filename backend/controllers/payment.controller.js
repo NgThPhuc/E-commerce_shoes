@@ -4,10 +4,14 @@ import { stripe } from "../lib/stripe.js";
 
 export const createCheckoutSession = async (req, res) => {
 	try {
-		const { products, couponCode } = req.body;
+		const { products, couponCode, shippingAddress } = req.body;
 
 		if (!Array.isArray(products) || products.length === 0) {
 			return res.status(400).json({ error: "Invalid or empty products array" });
+		}
+
+		if (!shippingAddress) {
+			return res.status(400).json({ error: "Shipping address is required" });
 		}
 
 		let totalAmount = 0;
@@ -45,10 +49,10 @@ export const createCheckoutSession = async (req, res) => {
 			cancel_url: `${process.env.CLIENT_URL}/purchase-cancel`,
 			discounts: coupon
 				? [
-						{
-							coupon: await createStripeCoupon(coupon.discountPercentage),
-						},
-				  ]
+					{
+						coupon: await createStripeCoupon(coupon.discountPercentage),
+					},
+				]
 				: [],
 			metadata: {
 				userId: req.user._id.toString(),
@@ -60,6 +64,7 @@ export const createCheckoutSession = async (req, res) => {
 						price: p.price,
 					}))
 				),
+				shippingAddress: JSON.stringify(shippingAddress)
 			},
 		});
 
@@ -76,7 +81,32 @@ export const createCheckoutSession = async (req, res) => {
 export const checkoutSuccess = async (req, res) => {
 	try {
 		const { sessionId } = req.body;
+
+		if (!sessionId) {
+			return res.status(400).json({
+				success: false,
+				message: "Session ID is required"
+			});
+		}
+
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+		if (!session) {
+			return res.status(404).json({
+				success: false,
+				message: "Session not found"
+			});
+		}
+
+		// Kiểm tra xem session này đã được xử lý chưa
+		const existingOrder = await Order.findOne({ stripeSessionId: sessionId });
+		if (existingOrder) {
+			return res.status(200).json({
+				success: true,
+				message: "Order already processed",
+				orderId: existingOrder._id
+			});
+		}
 
 		if (session.payment_status === "paid") {
 			if (session.metadata.couponCode) {
@@ -91,8 +121,9 @@ export const checkoutSuccess = async (req, res) => {
 				);
 			}
 
-			// create a new Order
 			const products = JSON.parse(session.metadata.products);
+			const shippingAddress = JSON.parse(session.metadata.shippingAddress);
+
 			const newOrder = new Order({
 				user: session.metadata.userId,
 				products: products.map((product) => ({
@@ -100,21 +131,32 @@ export const checkoutSuccess = async (req, res) => {
 					quantity: product.quantity,
 					price: product.price,
 				})),
-				totalAmount: session.amount_total / 100, // convert from cents to dollars,
+				totalAmount: session.amount_total / 100,
 				stripeSessionId: sessionId,
+				shippingAddress: shippingAddress,
+				status: 'pending'
 			});
 
 			await newOrder.save();
 
-			res.status(200).json({
+			return res.status(200).json({
 				success: true,
 				message: "Payment successful, order created, and coupon deactivated if used.",
 				orderId: newOrder._id,
 			});
+		} else {
+			return res.status(400).json({
+				success: false,
+				message: "Payment not completed"
+			});
 		}
 	} catch (error) {
 		console.error("Error processing successful checkout:", error);
-		res.status(500).json({ message: "Error processing successful checkout", error: error.message });
+		return res.status(500).json({
+			success: false,
+			message: "Error processing successful checkout",
+			error: error.message
+		});
 	}
 };
 

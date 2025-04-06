@@ -6,9 +6,27 @@ import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import OrderSummary from "../components/OrderSummary";
 import GiftCouponCard from "../components/GiftCouponCard";
+import { useState } from "react";
 
 const CartPage = () => {
 	const { cart } = useCartStore();
+	const [shippingAddress, setShippingAddress] = useState({
+		fullName: "",
+		phoneNumber: "",
+		address: "",
+		city: "",
+		state: "",
+		postalCode: "",
+		country: "Việt Nam"
+	});
+
+	const handleShippingAddressChange = (e) => {
+		const { name, value } = e.target;
+		setShippingAddress(prev => ({
+			...prev,
+			[name]: value
+		}));
+	};
 
 	return (
 		<div className='py-8 md:py-16'>
@@ -39,7 +57,11 @@ const CartPage = () => {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5, delay: 0.4 }}
 						>
-							<OrderSummary />
+							<ShippingAddressForm 
+								shippingAddress={shippingAddress}
+								onChange={handleShippingAddressChange}
+							/>
+							<OrderSummary shippingAddress={shippingAddress} />
 							<GiftCouponCard />
 						</motion.div>
 					)}
@@ -48,6 +70,99 @@ const CartPage = () => {
 		</div>
 	);
 };
+
+const ShippingAddressForm = ({ shippingAddress, onChange }) => {
+	return (
+		<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+			<h2 className="text-lg font-semibold mb-4 text-gray-800">Thông tin giao hàng</h2>
+			<div className="space-y-4">
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Họ và tên
+						</label>
+						<input
+							type="text"
+							name="fullName"
+							value={shippingAddress.fullName}
+							onChange={onChange}
+							className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+							required
+						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Số điện thoại
+						</label>
+						<input
+							type="tel"
+							name="phoneNumber"
+							value={shippingAddress.phoneNumber}
+							onChange={onChange}
+							className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+							required
+						/>
+					</div>
+				</div>
+				<div>
+					<label className="block text-sm font-medium text-gray-700 mb-1">
+						Địa chỉ
+					</label>
+					<input
+						type="text"
+						name="address"
+						value={shippingAddress.address}
+						onChange={onChange}
+						className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+						required
+					/>
+				</div>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Thành phố
+						</label>
+						<input
+							type="text"
+							name="city"
+							value={shippingAddress.city}
+							onChange={onChange}
+							className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+							required
+						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Quận/Huyện
+						</label>
+						<input
+							type="text"
+							name="state"
+							value={shippingAddress.state}
+							onChange={onChange}
+							className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+							required
+						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1">
+							Mã bưu điện
+						</label>
+						<input
+							type="text"
+							name="postalCode"
+							value={shippingAddress.postalCode}
+							onChange={onChange}
+							className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+							required
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+};
+
 export default CartPage;
 
 const EmptyCartUI = () => (

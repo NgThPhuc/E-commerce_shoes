@@ -1,7 +1,5 @@
 <h1 align="center">E-Commerce Store 🛒</h1>
 
-![Demo App](/frontend/public/screenshot-for-readme.png)
-
 About This Course:
 
 - 🚀 Project Setup
@@ -54,4 +52,17 @@ npm run build
 
 ```shell
 npm run start
+```
+
+```shell
+
+thêm chức năng quản lý đơn hàng:
+- thêm địa chỉ
+thêm chức năng quản lý user
+thêm chỉnh sửa cho sản phẩm hiện có
+thêm chi tiết sản phẩm
+tích hợp đăng nhập bằng gg
+tìm kiếm sản phầm bằng AI
+chỉnh sửa lại giao diện (thêm footer, sidebar, banner )
+
 ```

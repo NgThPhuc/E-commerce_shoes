@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 import { MoveRight } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import axios from "../lib/axios";
+import { toast } from "react-hot-toast";
 
 const stripePromise = loadStripe(
 	"pk_test_51R8eP8CFQ7eUU9nocfDRbWryr84TufQh8Zk2aPcXvMWpHm9y31gQATpkzhBKsAnanXp5P7RSMYuSTPMnuOr7HqTA00JxZ4QfnA"
 );
 
-const OrderSummary = () => {
+const OrderSummary = ({ shippingAddress }) => {
 	const { total, subtotal, coupon, isCouponApplied, cart } = useCartStore();
 
 	const savings = subtotal - total;
@@ -18,19 +19,34 @@ const OrderSummary = () => {
 	const formattedSavings = savings.toFixed(2);
 
 	const handlePayment = async () => {
+		// Validate shipping address
+		if (!shippingAddress.fullName || !shippingAddress.phoneNumber || !shippingAddress.address || 
+			!shippingAddress.city || !shippingAddress.state || !shippingAddress.postalCode) {
+			toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+			return;
+		}
+
 		const stripe = await stripePromise;
-		const res = await axios.post("/payments/create-checkout-session", {
-			products: cart,
-			couponCode: coupon ? coupon.code : null,
-		});
+		try {
+			const res = await axios.post("/payments/create-checkout-session", {
+				products: cart,
+				couponCode: coupon ? coupon.code : null,
+				shippingAddress: shippingAddress
+			});
 
-		const session = res.data;
-		const result = await stripe.redirectToCheckout({
-			sessionId: session.id,
-		});
+			const session = res.data;
+			
+			const result = await stripe.redirectToCheckout({
+				sessionId: session.id,
+			});
 
-		if (result.error) {
-			console.error("Error:", result.error);
+			if (result.error) {
+				console.error("Error:", result.error);
+				toast.error("Có lỗi xảy ra khi thanh toán");
+			}
+		} catch (error) {
+			console.error("Error:", error);
+			toast.error(error.response?.data?.message || "Có lỗi xảy ra khi thanh toán");
 		}
 	};
 
